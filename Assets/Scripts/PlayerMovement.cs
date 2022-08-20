@@ -26,7 +26,7 @@ public class PlayerMovement : MonoBehaviour {
         if (Input.GetButtonDown("Jump")) {
             jumping = true;
         }
-        if (Input.GetButtonDown("Dash") && canDash) {
+        if (Input.GetButtonDown("Dash")) {
             dashing = true;
         }
     }
@@ -35,11 +35,10 @@ public class PlayerMovement : MonoBehaviour {
         Collider2D[] colliders = Physics2D.OverlapCircleAll(GroundBar.position, 0.15f, GroundLayers);
         for (int i = 0; i < colliders.Length; ++i) {
             if (colliders[i].gameObject != gameObject) {
-                if (!grounded) {
-                    grounded = true;
-                    canDash = true;
-                    OnLandEvent.Invoke();
-                }
+                grounded = true;
+                canDash = true;
+                OnLandEvent.Invoke();
+                break;
             }
         }
 
@@ -64,13 +63,15 @@ public class PlayerMovement : MonoBehaviour {
         }
 
         if (jumping && grounded) {
-            grounded = false;
             rb.AddForce(new Vector2(0f, jump));
         }
 
-        if (dashing) {
+        if (dashing && canDash) {
             rb.AddForce(new Vector2(dash * (facingRight ? 1 : -1), 0f));
-            canDash = false;
+
+            if (!grounded) {
+                canDash = false;
+            }
         }
     }
 
