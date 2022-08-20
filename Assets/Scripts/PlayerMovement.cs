@@ -13,7 +13,7 @@ public class PlayerMovement : MonoBehaviour {
 
     private Rigidbody2D rb;
     private Vector3 velocity = Vector3.zero;
-    private bool facingRight = true, grounded = false;
+    private bool facingRight = true, grounded = false, canDash = false;
     private bool jumping = false, dashing = false;
     private float x_input = 0f;
 
@@ -26,7 +26,7 @@ public class PlayerMovement : MonoBehaviour {
         if (Input.GetButtonDown("Jump")) {
             jumping = true;
         }
-        if (Input.GetButtonDown("Dash")) {
+        if (Input.GetButtonDown("Dash") && canDash) {
             dashing = true;
         }
     }
@@ -37,6 +37,7 @@ public class PlayerMovement : MonoBehaviour {
             if (colliders[i].gameObject != gameObject) {
                 if (!grounded) {
                     grounded = true;
+                    canDash = true;
                     OnLandEvent.Invoke();
                 }
             }
@@ -69,6 +70,7 @@ public class PlayerMovement : MonoBehaviour {
 
         if (dashing) {
             rb.AddForce(new Vector2(dash * (facingRight ? 1 : -1), 0f));
+            canDash = false;
         }
     }
 
