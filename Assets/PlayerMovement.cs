@@ -3,24 +3,22 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Events;
 
-public class PlayerMovement : MonoBehaviour
-{
-	public LayerMask GroundLayers;
-	public Transform GroundBar;
-	public UnityEvent OnLandEvent;
+public class PlayerMovement : MonoBehaviour {
+    public LayerMask GroundLayers;
+    public Transform GroundBar;
+    public UnityEvent OnLandEvent;
     public float speed = 40f;
     public float jump = 1100f;
     public float dash = 1200f;
 
-	private Rigidbody2D rb;
-	private Vector3 velocity = Vector3.zero;
+    private Rigidbody2D rb;
+    private Vector3 velocity = Vector3.zero;
     private bool facingRight = true, grounded = false;
     private bool jumping = false, dashing = false;
     private float x_input = 0f;
-    
-	private void Awake()
-	{
-		rb = GetComponent<Rigidbody2D>();
+
+    private void Awake() {
+        rb = GetComponent<Rigidbody2D>();
     }
 
     void Update() {
@@ -35,14 +33,14 @@ public class PlayerMovement : MonoBehaviour
 
     void FixedUpdate() {
         Collider2D[] colliders = Physics2D.OverlapCircleAll(GroundBar.position, 0.15f, GroundLayers);
-		for (int i = 0; i < colliders.Length; ++i) {
-			if (colliders[i].gameObject != gameObject) {
-				if (!grounded) {
+        for (int i = 0; i < colliders.Length; ++i) {
+            if (colliders[i].gameObject != gameObject) {
+                if (!grounded) {
                     grounded = true;
-					OnLandEvent.Invoke();
+                    OnLandEvent.Invoke();
                 }
-			}
-		}
+            }
+        }
 
         Move(x_input * speed * Time.fixedDeltaTime);
         grounded = false;
@@ -51,8 +49,8 @@ public class PlayerMovement : MonoBehaviour
     }
 
     private void Move(float m) {
-		Vector3 targetVelocity = new Vector2(m * 10f, rb.velocity.y);
-		rb.velocity = Vector3.SmoothDamp(rb.velocity, targetVelocity, ref velocity, 0.1f);
+        Vector3 targetVelocity = new Vector2(m * 10f, rb.velocity.y);
+        rb.velocity = Vector3.SmoothDamp(rb.velocity, targetVelocity, ref velocity, 0.1f);
 
         if (facingRight) {
             if (m < 0) {
@@ -66,11 +64,11 @@ public class PlayerMovement : MonoBehaviour
 
         if (jumping && grounded) {
             grounded = false;
-			rb.AddForce(new Vector2(0f, jump));
+            rb.AddForce(new Vector2(0f, jump));
         }
 
         if (dashing) {
-			rb.AddForce(new Vector2(dash * (facingRight ? 1 : -1), 0f));
+            rb.AddForce(new Vector2(dash * (facingRight ? 1 : -1), 0f));
         }
     }
 
