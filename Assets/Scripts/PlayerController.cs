@@ -17,11 +17,10 @@ public class PlayerController : MonoBehaviour {
     private bool jumping = false, dashing = false;
     private float x_input = 0f;
 
-    private float swingTime, swingStartTime = 0.5f;
+    private float swingTime, swingStartTime = 0.5f, swingRange = 0.8f;
     private bool swinging;
     public Transform SwingPos;
     public LayerMask DoorLayer;
-    public float swingRange;
     public float doorBoost;
 
     private void Awake() {
@@ -61,9 +60,8 @@ public class PlayerController : MonoBehaviour {
                 {
                     onDoorHit();
                 }
-
+                swingTime = swingStartTime;
             }
-            swingTime = swingStartTime;
         }
         else
         {
