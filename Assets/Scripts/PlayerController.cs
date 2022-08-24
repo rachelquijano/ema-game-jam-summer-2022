@@ -55,10 +55,9 @@ public class PlayerController : MonoBehaviour {
         {
             if (swinging)
             {
-                Collider2D[] doorColliders = Physics2D.OverlapCircleAll(SwingPos.position, swingRange, DoorLayer);
-                for (int i = 0; i < doorColliders.Length; ++i)
-                {
-                    onDoorHit();
+                Collider2D doorCollider = Physics2D.OverlapCircle(SwingPos.position, swingRange, DoorLayer);
+                if(doorCollider != null) { 
+                    onDoorHit(doorCollider); 
                 }
                 swingTime = swingStartTime;
             }
@@ -109,9 +108,11 @@ public class PlayerController : MonoBehaviour {
         transform.localScale = newDirection;
     }
 
-    private void onDoorHit()
+    private void onDoorHit(Collider2D door)
     {
         rb.AddForce(new Vector2(0f, doorBoost));
+        GameObject.Destroy(door.gameObject);
+        canDash = true;
     }
 
     private void OnDrawGizmosSelected()
@@ -119,4 +120,14 @@ public class PlayerController : MonoBehaviour {
         Gizmos.color = Color.red;
         Gizmos.DrawSphere(SwingPos.position, swingRange);
     }
+
+    private void OnTriggerEnter2D(Collider2D collision)
+    {
+        if (collision.tag == "Spike")
+        {
+            gameObject.GetComponent<Collider2D>().enabled = false;
+            this.enabled = false;
+        }
+    }
+
 }
