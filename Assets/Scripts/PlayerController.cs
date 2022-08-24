@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Events;
 
-public class PlayerMovement : MonoBehaviour {
+public class PlayerController : MonoBehaviour {
     public LayerMask GroundLayers;
     public Transform GroundBar;
     public UnityEvent OnLandEvent;
@@ -17,6 +17,12 @@ public class PlayerMovement : MonoBehaviour {
     private bool jumping = false, dashing = false;
     private float x_input = 0f;
 
+    private float swingTime, swingStartTime = 0.5f, swingRange = 0.8f;
+    private bool swinging;
+    public Transform SwingPos;
+    public LayerMask DoorLayer;
+    public float doorBoost;
+
     private void Awake() {
         rb = GetComponent<Rigidbody2D>();
     }
@@ -28,6 +34,10 @@ public class PlayerMovement : MonoBehaviour {
         }
         if (Input.GetButtonDown("Dash")) {
             dashing = true;
+        }
+        if (Input.GetKeyDown(KeyCode.Z))
+        {
+            swinging = true;
         }
     }
 
@@ -41,11 +51,28 @@ public class PlayerMovement : MonoBehaviour {
                 break;
             }
         }
+        if (swingTime <= 0)
+        {
+            if (swinging)
+            {
+                Collider2D[] doorColliders = Physics2D.OverlapCircleAll(SwingPos.position, swingRange, DoorLayer);
+                for (int i = 0; i < doorColliders.Length; ++i)
+                {
+                    onDoorHit();
+                }
+                swingTime = swingStartTime;
+            }
+        }
+        else
+        {
+            swingTime -= Time.deltaTime;
+        }
 
         Move(x_input * speed * Time.fixedDeltaTime);
         grounded = false;
         jumping = false;
         dashing = false;
+        swinging = false;
     }
 
     private void Move(float m) {
@@ -80,5 +107,16 @@ public class PlayerMovement : MonoBehaviour {
         Vector3 newDirection = transform.localScale;
         newDirection.x *= -1;
         transform.localScale = newDirection;
+    }
+
+    private void onDoorHit()
+    {
+        rb.AddForce(new Vector2(0f, doorBoost));
+    }
+
+    private void OnDrawGizmosSelected()
+    {
+        Gizmos.color = Color.red;
+        Gizmos.DrawSphere(SwingPos.position, swingRange);
     }
 }
