@@ -4,127 +4,159 @@ using UnityEngine;
 using UnityEngine.Events;
 
 public class PlayerController : MonoBehaviour {
-    public LayerMask GroundLayers;
-    public Transform GroundBar;
-    public UnityEvent OnLandEvent;
-    public float speed = 40f;
-    public float jump = 1100f;
-    public float dash = 1200f;
 
     private Rigidbody2D rb;
-    private Vector3 velocity = Vector3.zero;
-    private bool facingRight = true, grounded = false, canDash = false;
-    private bool jumping = false, dashing = false;
-    private float x_input = 0f;
+    private Animator anim;
 
-    private int coinsCollected = 0;
 
-    private float swingTime, swingStartTime = 0.5f, swingRange = 0.8f;
-    private bool swinging;
-    public Transform SwingPos;
-    public LayerMask DoorLayer;
-    public float doorBoost;
+    private LayerMask groundLayer;
+    private LayerMask doorLayer;
+    private Transform groundedPos, swingPos;
+    private float speed = 250, jumpPower = 450, dashPower = 20, doorBoost = 12;
+    private float groundedRadius = 0.1f, swingRange = 1f, swingTime, swingStartTime = 0.5f;
+    private bool jumping = false, facingRight = true, isGrounded = false, canSwing = true, canDash = true, dashing = false, hasLanded = false, hasPlayedLandSound;
 
-    private void Awake() {
+    private AudioSource audioSource;
+    [SerializeField] AudioClip swing, dash, landed;
+
+
+    private void Awake()
+    {
         rb = GetComponent<Rigidbody2D>();
+        anim = GetComponentInChildren<Animator>();
+        audioSource = GetComponentInChildren<AudioSource>();
+        groundLayer = LayerMask.GetMask("Ground");
+        doorLayer = LayerMask.GetMask("Door");
+        groundedPos = transform.GetChild(1);
+        swingPos = transform.GetChild(2);
+
     }
 
-    void Update() {
-        x_input = Input.GetAxisRaw("Horizontal");
-        if (Input.GetButtonDown("Jump")) {
-            jumping = true;
+    private void Update()
+    {
+        anim.SetFloat("speed", Mathf.Abs(rb.velocity.x));
+        anim.SetBool("jumping", jumping);
+        
+        if (swingTime < 0)
+        {
+            swingTime = 0;
+            canSwing = true;
         }
-        if (Input.GetButtonDown("Dash")) {
-            dashing = true;
+        else if(swingTime > 0)
+        {
+            swingTime -= 1 * Time.deltaTime;
+            canSwing = false;
         }
-        if (Input.GetKeyDown(KeyCode.Z)) {
-            swinging = true;
-        }
-    }
 
-    void FixedUpdate() {
-        Collider2D[] colliders = Physics2D.OverlapCircleAll(GroundBar.position, 0.15f, GroundLayers);
-        for (int i = 0; i < colliders.Length; ++i) {
-            if (colliders[i].gameObject != gameObject) {
-                grounded = true;
-                canDash = true;
-                OnLandEvent.Invoke();
-                break;
-            }
+        if(isGrounded)
+        {
+            hasLanded = true;
         }
-        if (swingTime <= 0) {
-            if (swinging) {
-                Collider2D doorCollider = Physics2D.OverlapCircle(SwingPos.position, swingRange, DoorLayer);
-                if (doorCollider != null) {
-                    onDoorHit(doorCollider);
+        if(isGrounded && hasLanded && !hasPlayedLandSound)
+        {
+            audioSource.clip = landed;
+            audioSource.Play();
+            hasPlayedLandSound = true;
+        }
+
+        if (Input.GetKeyDown(KeyCode.X))
+        {
+            if (canSwing)
+            {
+                canSwing = false;
+                anim.SetTrigger("swing");
+                audioSource.clip = swing;
+                audioSource.Play();
+                Collider2D doorHit = Physics2D.OverlapCircle(swingPos.position, swingRange, doorLayer);
+                if (doorHit != null)
+                {
+                    onDoorHit(doorHit);
                 }
                 swingTime = swingStartTime;
             }
-        } else {
-            swingTime -= Time.deltaTime;
+        }else if (Input.GetKeyDown(KeyCode.Z))
+        {
+            if (canDash)
+            {
+                StartCoroutine(Dash());
+            }
         }
-
-        Move(x_input * speed * Time.fixedDeltaTime);
-        grounded = false;
-        jumping = false;
-        dashing = false;
-        swinging = false;
     }
 
-    private void Move(float m) {
-        Vector3 targetVelocity = new Vector2(m * 10f, rb.velocity.y);
-        rb.velocity = Vector3.SmoothDamp(rb.velocity, targetVelocity, ref velocity, 0.1f);
+    private void FixedUpdate()
+    {
+       
+        isGrounded = Physics2D.OverlapCircle(groundedPos.position, groundedRadius, groundLayer);
 
-        if (facingRight) {
-            if (m < 0) {
-                FlipDirection(false);
-            }
-        } else {
-            if (m > 0) {
+        if (isGrounded)
+        {
+            canDash = true;
+        }
+
+        float x_input = Input.GetAxisRaw("Horizontal");
+        float y_input = Input.GetAxisRaw("Vertical");
+           
+        if (x_input > 0 && !dashing)
+        {
+            rb.velocity = new Vector3(speed * Time.fixedDeltaTime, rb.velocity.y, 0f);
+            if (!facingRight)
                 FlipDirection(true);
-            }
+
+        }
+        else if(x_input < 0 && !dashing)
+        {
+            rb.velocity = new Vector3(-speed * Time.fixedDeltaTime, rb.velocity.y, 0f);
+            if (facingRight)
+                FlipDirection(false);
+        }
+        else if(!dashing)
+        {
+            rb.velocity = new Vector3(0f, rb.velocity.y, 0f);
         }
 
-        if (jumping && grounded) {
-            rb.AddForce(new Vector2(0f, jump));
+        if(y_input > 0 && isGrounded)
+        {
+            jumping = true;
+            rb.velocity = new Vector3(rb.velocity.x, jumpPower * Time.deltaTime, 0f);
         }
-
-        if (dashing && canDash) {
-            rb.AddForce(new Vector2(dash * (facingRight ? 1 : -1), 0f));
-
-            if (!grounded) {
-                canDash = false;
-            }
+        else if(isGrounded)
+        {
+            jumping = false;
+        }
+        else if (!isGrounded)
+        {
+            hasLanded = false;
+            hasPlayedLandSound = false;
         }
     }
 
-    private void FlipDirection(bool toRight) {
+    private void FlipDirection(bool toRight)
+    {
         facingRight = toRight;
         Vector3 newDirection = transform.localScale;
         newDirection.x *= -1;
         transform.localScale = newDirection;
     }
 
-    private void onDoorHit(Collider2D door) {
-        rb.AddForce(new Vector2(0f, doorBoost));
-        GameObject.Destroy(door.gameObject);
+    private void onDoorHit(Collider2D door)
+    {
+        rb.velocity = new Vector3(rb.velocity.x, doorBoost, 0f);
+        door.gameObject.SetActive(false);
         canDash = true;
     }
 
-    private void OnDrawGizmosSelected() {
-        Gizmos.color = Color.red;
-        Gizmos.DrawSphere(SwingPos.position, swingRange);
+    IEnumerator Dash()
+    {
+        dashing = true;
+        rb.velocity = new Vector3(dashPower * (facingRight ? 1 : -1), 0f, 0f);
+        rb.gravityScale = 0;
+        anim.SetTrigger("dash");
+        audioSource.clip = dash;
+        audioSource.Play();
+        canDash = false;
+        yield return new WaitForSeconds(0.2f);
+        rb.gravityScale = 2.5f;
+        dashing = false;
     }
 
-    private void OnTriggerEnter2D(Collider2D collision) {
-        if (collision.tag == "Spike") {
-            gameObject.GetComponent<Collider2D>().enabled = false;
-            this.enabled = false;
-        }
-
-        if (collision.gameObject.layer == 6) { // Layer 6 is "Coins"
-            Destroy(collision.gameObject);
-            ++coinsCollected;
-        }
-    }
 }

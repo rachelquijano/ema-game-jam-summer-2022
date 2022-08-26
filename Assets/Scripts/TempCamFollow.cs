@@ -7,7 +7,7 @@ public class TempCamFollow : MonoBehaviour
     [SerializeField] Transform target;
 
     // Update is called once per frame
-    void Update()
+    void FixedUpdate()
     {
         gameObject.transform.position = new Vector3(target.position.x, target.position.y, -10f);
     }
