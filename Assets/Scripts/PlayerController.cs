@@ -17,6 +17,8 @@ public class PlayerController : MonoBehaviour {
     private bool jumping = false, dashing = false;
     private float x_input = 0f;
 
+    private int coinsCollected = 0;
+
     private float swingTime, swingStartTime = 0.5f, swingRange = 0.8f;
     private bool swinging;
     public Transform SwingPos;
@@ -35,8 +37,7 @@ public class PlayerController : MonoBehaviour {
         if (Input.GetButtonDown("Dash")) {
             dashing = true;
         }
-        if (Input.GetKeyDown(KeyCode.Z))
-        {
+        if (Input.GetKeyDown(KeyCode.Z)) {
             swinging = true;
         }
     }
@@ -51,19 +52,15 @@ public class PlayerController : MonoBehaviour {
                 break;
             }
         }
-        if (swingTime <= 0)
-        {
-            if (swinging)
-            {
+        if (swingTime <= 0) {
+            if (swinging) {
                 Collider2D doorCollider = Physics2D.OverlapCircle(SwingPos.position, swingRange, DoorLayer);
-                if(doorCollider != null) { 
-                    onDoorHit(doorCollider); 
+                if (doorCollider != null) {
+                    onDoorHit(doorCollider);
                 }
                 swingTime = swingStartTime;
             }
-        }
-        else
-        {
+        } else {
             swingTime -= Time.deltaTime;
         }
 
@@ -108,26 +105,26 @@ public class PlayerController : MonoBehaviour {
         transform.localScale = newDirection;
     }
 
-    private void onDoorHit(Collider2D door)
-    {
+    private void onDoorHit(Collider2D door) {
         rb.AddForce(new Vector2(0f, doorBoost));
         GameObject.Destroy(door.gameObject);
         canDash = true;
     }
 
-    private void OnDrawGizmosSelected()
-    {
+    private void OnDrawGizmosSelected() {
         Gizmos.color = Color.red;
         Gizmos.DrawSphere(SwingPos.position, swingRange);
     }
 
-    private void OnTriggerEnter2D(Collider2D collision)
-    {
-        if (collision.tag == "Spike")
-        {
+    private void OnTriggerEnter2D(Collider2D collision) {
+        if (collision.tag == "Spike") {
             gameObject.GetComponent<Collider2D>().enabled = false;
             this.enabled = false;
         }
-    }
 
+        if (collision.gameObject.layer == 6) { // Layer 6 is "Coins"
+            Destroy(collision.gameObject);
+            ++coinsCollected;
+        }
+    }
 }
